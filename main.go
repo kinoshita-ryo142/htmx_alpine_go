@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strings"
 )
 
 // メール送信設定 (環境変数から読み込む構造体)
@@ -18,8 +19,15 @@ type EmailConfig struct {
 }
 
 func main() {
-	// 1. 静的ファイル配信
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// 1. 静的ファイル配信（CSS の場合は Content-Type を明示）
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Static request: %s", r.URL.Path)
+		if strings.HasSuffix(r.URL.Path, ".css") {
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		}
+		fs.ServeHTTP(w, r)
+	})))
 
 	// 2. トップページ
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
