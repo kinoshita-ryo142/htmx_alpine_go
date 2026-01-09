@@ -18,9 +18,6 @@ vendor/
 coverage.out
 *.coverprofile
 
-# Generated/static assets
-static/css/style.css
-
 # Node
 node_modules/
 .npm/
