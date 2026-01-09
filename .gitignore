@@ -1,0 +1,58 @@
+# Go
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Build directories
+bin/
+build/
+dist/
+
+# Vendor
+vendor/
+
+# Go coverage
+coverage.out
+*.coverprofile
+
+# Generated/static assets
+static/css/style.css
+
+# Node
+node_modules/
+.npm/
+.yarn/
+.cache/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+*.tmp
+*~
+
+# Editors/IDEs
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+# Ignore compiled proto files, if any
+*.pb.go
+
+# Keep an example environment file tracked
+!.env.example

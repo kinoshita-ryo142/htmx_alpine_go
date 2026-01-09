@@ -1,0 +1,37 @@
+version: '3'
+
+vars:
+  # Taskfileの {{OS}} は "windows" (小文字) を返します
+  IS_WIN: '{{eq OS "windows"}}'
+  
+  # OSに合わせて拡張子を定義
+  EXE: '{{if .IS_WIN}}.exe{{end}}'
+
+  # 【ここがポイント】
+  # Windowsならパスなし、Mac/Linuxなら "./" を付けて呼び出すコマンドを定義
+  TAILWIND_CMD: '{{if .IS_WIN}}tailwindcss{{.EXE}}{{else}}./tailwindcss{{end}}'
+
+tasks:
+  default:
+    cmds:
+      - task: dev
+
+  dev:
+    desc: 開発モード起動 (Air + Tailwind CSS)
+    deps: [css, server]
+
+  server:
+    desc: AirでGoサーバーを起動（SMTPは env 参照）
+    env:
+      SMTP_SERVER: smtp.gmail.com
+      SMTP_PORT: '587'
+      SMTP_EMAIL: kinoshita.ryo.srce@gmail.com
+    cmds:
+      - air
+    prefix: "[GO]"
+
+  css:
+    desc: Tailwind CSS (Watchモード)
+    # 変数化したコマンドを使用
+    cmd: '{{.TAILWIND_CMD}} -i ./assets/input.css -o ./static/css/style.css --watch'
+    prefix: "[CSS]"

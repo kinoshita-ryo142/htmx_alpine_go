@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@source "../templates/**/*.html";
+@source "../**/*.go";
+
+@theme {
+    --color-theme-primary: #3b82f6;
+}

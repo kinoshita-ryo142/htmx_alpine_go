@@ -1,0 +1,20 @@
+{{ define "header" }}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Go + HTMX App</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body hx-boost="true">
+    <div class="mx-auto w-2/3">
+    <nav>
+        <div class="bg-gray-200 p-4 mb-4">
+            <strong>My App</strong> | 
+            <a href="/">ホーム</a> | 
+            <a href="/about">About</a>
+        </div>
+    </nav>
+{{ end }}
