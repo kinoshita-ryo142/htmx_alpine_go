@@ -84,6 +84,39 @@ func main() {
 		w.Write([]byte(successHTML))
 	})
 
+	// Debug endpoint — 一時的 (パスワード等は表示しません)
+	http.HandleFunc("/_debug/smtp", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		server := os.Getenv("SMTP_SERVER")
+		portEnv := os.Getenv("SMTP_PORT")
+		sender := os.Getenv("SMTP_EMAIL")
+		fmt.Fprintf(w, "SMTP_SERVER=%q\nSMTP_PORT=%q\nSMTP_EMAIL=%q\n\n", server, portEnv, sender)
+
+		if server == "" || portEnv == "" {
+			fmt.Fprintln(w, "SMTP_SERVER or SMTP_PORT not set")
+			return
+		}
+
+		// DNS lookup
+		ips, err := net.LookupHost(server)
+		if err != nil {
+			fmt.Fprintf(w, "DNS lookup failed: %v\n", err)
+		} else {
+			fmt.Fprintf(w, "Resolved IPs: %v\n", ips)
+		}
+
+		// Try TCP dial
+		addr := net.JoinHostPort(server, portEnv)
+		d := net.Dialer{Timeout: 5 * time.Second}
+		conn, err := d.Dial("tcp", addr)
+		if err != nil {
+			fmt.Fprintf(w, "Dial TCP %s error: %v\n", addr, err)
+			return
+		}
+		conn.Close()
+		fmt.Fprintf(w, "Dial TCP %s: success\n", addr)
+	})
+
 	// Render対応のポート設定
 	port := os.Getenv("PORT")
 	if port == "" {
