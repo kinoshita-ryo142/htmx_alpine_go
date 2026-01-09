@@ -1,13 +1,16 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"net/smtp"
 	"os"
 	"strings"
+	"time"
 )
 
 // メール送信設定 (環境変数から読み込む構造体)
@@ -50,6 +53,7 @@ func main() {
 		name := r.FormValue("name")
 		email := r.FormValue("email")
 		message := r.FormValue("message")
+		log.Printf("Contact POST received: name=%s email=%s from %s", name, email, r.RemoteAddr)
 
 		// --- メール送信処理 ---
 		err := sendEmail(name, email, message)
@@ -128,14 +132,69 @@ func sendEmail(name, userEmail, messageBody string) error {
 		"--------------------------------\r\n",
 		userEmail, name, name, userEmail, messageBody))
 
-	// 送信実行
-	err := smtp.SendMail(
-		config.SMTPServer+":"+config.SMTPPort,
-		auth,
-		config.Sender,
-		to,
-		msg,
-	)
+	// 送信は非同期で行う（同期だと接続できないSMTP宛先でリクエストがハングするため）
+	go func() {
+		addr := config.SMTPServer + ":" + config.SMTPPort
+		d := net.Dialer{Timeout: 10 * time.Second}
+		conn, err := d.Dial("tcp", addr)
+		if err != nil {
+			log.Printf("SMTP dial error: %v", err)
+			return
+		}
+		// TLS / STARTTLS handling and SMTP client
+		client, err := smtp.NewClient(conn, config.SMTPServer)
+		if err != nil {
+			log.Printf("SMTP client error: %v", err)
+			return
+		}
+		defer client.Close()
 
-	return err
+		if ok, _ := client.Extension("STARTTLS"); ok {
+			tlsConfig := &tls.Config{ServerName: config.SMTPServer}
+			if err := client.StartTLS(tlsConfig); err != nil {
+				log.Printf("SMTP STARTTLS error: %v", err)
+				return
+			}
+		}
+
+		if err := client.Auth(auth); err != nil {
+			log.Printf("SMTP auth error: %v", err)
+			return
+		}
+
+		if err := client.Mail(config.Sender); err != nil {
+			log.Printf("SMTP MAIL FROM error: %v", err)
+			return
+		}
+		for _, rcpt := range to {
+			if err := client.Rcpt(rcpt); err != nil {
+				log.Printf("SMTP RCPT error for %s: %v", rcpt, err)
+				return
+			}
+		}
+
+		w, err := client.Data()
+		if err != nil {
+			log.Printf("SMTP DATA error: %v", err)
+			return
+		}
+
+		if _, err := w.Write(msg); err != nil {
+			log.Printf("SMTP write error: %v", err)
+			return
+		}
+
+		if err := w.Close(); err != nil {
+			log.Printf("SMTP DATA close error: %v", err)
+			return
+		}
+
+		if err := client.Quit(); err != nil {
+			log.Printf("SMTP QUIT error: %v", err)
+		}
+
+		log.Printf("SMTP send finished (async) to %v", to)
+	}()
+
+	return nil
 }
